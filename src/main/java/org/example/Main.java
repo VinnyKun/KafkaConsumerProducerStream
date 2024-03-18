@@ -10,6 +10,8 @@ public class Main {
     private final static String SENDER = "sender";
     private final static String RECEIVER = "receiver";
 
+    private final static String MONITOR = "monitor";
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -67,7 +69,26 @@ public class Main {
                     System.err.println("Error while consuming messages: " + error.getMessage());
                 })
                 .blockLast();
-        } else {
+        } else if (MONITOR.equals(role)) {
+            System.out.print("Enter your monitor name to listen for messages: ");
+            String monitorName = scanner.nextLine().trim();
+            System.out.println("Listening for messages. Press Ctrl+C to exit.");
+            MessageCountConsumer consumer = new MessageCountConsumer();
+
+            // Subscribe and listen for messages
+            Flux<ReceiverRecord<String, Long>> events = consumer.consume(monitorName);
+
+            events.doOnNext(record -> {
+                        Long count = record.value();
+                        System.out.println(record.key()+ " has send a grand total of : " + count + " messages sent!");
+                        record.receiverOffset().commit().subscribe();
+                    })
+                    .doOnError(error -> {
+                        System.err.println("Error while consuming messages: " + error.getMessage());
+                    })
+                    .blockLast();
+
+        }else {
             System.out.println("Invalid role selected. Please restart the application and select either 'sender' or 'receiver'.");
         }
     }
